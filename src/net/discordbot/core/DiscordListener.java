@@ -39,7 +39,7 @@ public final class DiscordListener extends ListenerAdapter {
     this.data = data;
   }
 
-  private DiscordListener addBot(DiscordBot bot) {
+  public DiscordListener addBot(DiscordBot bot) {
     cmdParser.registerCommands(bot);
     bots.add(bot);
     return this;
