@@ -4,11 +4,10 @@ import net.discordbot.core.DiscordListener;
 import net.discordbot.core.Utils;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDABuilder;
-import net.dv8tion.jda.core.hooks.ListenerAdapter;
 
 import java.util.Properties;
 
-public final class BotRunner extends ListenerAdapter {
+public final class BotRunner {
 
   private BotRunner() {}
 

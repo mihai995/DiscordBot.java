@@ -4,10 +4,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Verify;
 import net.dv8tion.jda.core.entities.Message;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -19,35 +16,17 @@ public final class CommandParser extends DiscordBot {
       Pattern.compile(
           String.format("(%s)([a-zA-Z]+)(.*)", Joiner.on('|').join(Utils.COMMAND_MARKERS)));
 
-  private static final Joiner WORD_SEPARATOR = Joiner.on(", ");
+  private final Map<String, CommandInvoker> commands = new HashMap<>();
 
-  private final Map<String, Method> commands = new HashMap<>();
-
-  private final Map<String, DiscordBot> bots = new HashMap<>();
-
+  /** Adds all DiscordBot commands held by the bot instance. */
   public void registerCommands(DiscordBot bot) {
     for (Method method : bot.getClass().getDeclaredMethods()) {
-      if (getDescription(method) != null) {
-        registerCommand(bot, method);
+      if (CommandInvoker.isCommand(method)) {
+        String name = method.getName().toLowerCase();
+        CommandInvoker oldCmd = commands.putIfAbsent(name, new CommandInvoker(bot, method, name));
+        Verify.verify(oldCmd == null, "Defined duplicate command %s!", name);
       }
     }
-  }
-
-  /**
-   * Adds a new `command` to the registry. Upon encountering it, the command bot will run
-   * `bot`.`method`(arguments).
-   */
-  public void registerCommand(DiscordBot bot, Method method) {
-    String command = method.getName();
-    int modifiers = method.getModifiers();
-
-    Verify.verify(Modifier.isPublic(modifiers), "%s is not public!", command);
-    Verify.verify(!Modifier.isStatic(modifiers), "%s is static!", command);
-    Verify.verify(!commands.containsKey(command), "Duplicate command %s!", command);
-    Verify.verify(method.getParameterTypes()[0].equals(Message.class));
-
-    commands.put(command, method);
-    bots.put(command, bot);
   }
 
   /**
@@ -61,53 +40,22 @@ public final class CommandParser extends DiscordBot {
       return false;
     }
 
-    // Split the command line into "[command] [arg_1] [arg_2] ... [arg_n]".
-    String commandName = commandMatcher.group(2);
-    String[] commandArgument =
-        Arrays.stream(commandMatcher.group(3).split("\\W+"))
-            .filter(x -> !x.isEmpty())
-            .toArray(String[]::new);
-
-    Method commandRunner = commands.get(commandName);
-    if (commandRunner == null || commandRunner.getParameterCount() - 1 != commandArgument.length) {
-      reply(message, "Could not resolve command \"%s\"!", commandName).now();
-      help(message);
-      return true;
-    }
-    DiscordBot bot = Verify.verifyNotNull(bots.get(commandName));
-
-    Class[] type = commandRunner.getParameterTypes();
-    Object[] arguments = new Object[type.length];
-    arguments[0] = message;
-    for (int i = 0; i < commandArgument.length; i++) {
-      arguments[i + 1] = Utils.convert(commandArgument[i], type[i + 1]);
-    }
-    try {
-      commandRunner.invoke(bot, arguments);
-      // message.delete().reason("Command executed").complete(); TODO: reintroduce this.
-    } catch (IllegalAccessException | InvocationTargetException e) {
-      throw new IllegalStateException("Impossible due to explicit method collection", e);
+    CommandInvoker command = commands.get(commandMatcher.group(2).toLowerCase());
+    if (command == null || !command.run(message, commandMatcher.group(3))) {
+      reply(message)
+          .say("Could not resolve command \"%s\"! ", commandMatcher.group(2))
+          .say("Run *help* for a list of available commands")
+          .now();
     }
     return true;
   }
 
-  @BotCommand("prints list of available commands")
+  @BotCommand("writes this list")
   public void help(Message message) {
     ActionBuilder action = reply(message);
-    for (Map.Entry<String, Method> entry : commands.entrySet()) {
-      Method method = entry.getValue();
-      action.say("\n%s(%s): %s", entry.getKey(), getSignature(method), getDescription(method));
+    for (CommandInvoker cmd : commands.values()) {
+      action = action.say("\n%s", cmd.getDescription());
     }
     action.now();
-  }
-
-  private static String getDescription(Method method) {
-    BotCommand description = method.getAnnotation(BotCommand.class);
-    return description != null ? description.value() : null;
-  }
-
-  private static String getSignature(Method method) {
-    return WORD_SEPARATOR.join(
-        Arrays.stream(method.getParameterTypes()).skip(1).map(clazz -> clazz.getName()).iterator());
   }
 }

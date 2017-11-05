@@ -16,7 +16,7 @@ import java.util.Properties;
 /**
  * Implements a thin wrapper around a JDA bot for convenience purposes.
  */
-public abstract class DiscordBot extends ListenerAdapter {
+public abstract class DiscordBot {
 
   private TextChannel mainChannel;
 

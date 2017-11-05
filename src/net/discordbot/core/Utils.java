@@ -21,20 +21,6 @@ public final class Utils {
 
   private static final String[] EXPECTED_RESOURCES = {"token", "main_channel", "log_channel"};
 
-  /** Converts the string `argument` into an object of type `clazz`. */
-  public static Object convert(String argument, Class<?> clazz) {
-    switch (clazz.getSimpleName()) {
-      case "Integer":
-        return Integer.decode(argument);
-      case "Double":
-        return Double.parseDouble(argument);
-      case "String":
-        return argument;
-      default:
-        throw new IllegalArgumentException(clazz + " is not a permissible argument type!");
-    }
-  }
-
   /** Returns a Properties object with the data in the resource file. */
   public static Properties getData() throws IOException {
     Properties data = new Properties();

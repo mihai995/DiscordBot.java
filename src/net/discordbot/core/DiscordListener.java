@@ -33,9 +33,9 @@ public final class DiscordListener extends ListenerAdapter {
   private final Properties data;
 
   public DiscordListener(Properties data) {
-    addBot(cmdParser);
     addBot(musicBot);
     addBot(reactBot);
+    addBot(cmdParser);
     this.data = data;
   }
 
@@ -43,6 +43,13 @@ public final class DiscordListener extends ListenerAdapter {
     cmdParser.registerCommands(bot);
     bots.add(bot);
     return this;
+  }
+
+  /** Handles the parsing of new and old messages. */
+  private void parseMessage(Message message) {
+    if (!cmdParser.parseCommand(message)) {
+      reactBot.react(message);
+    }
   }
 
   @Override
@@ -55,11 +62,6 @@ public final class DiscordListener extends ListenerAdapter {
     parseMessage(event.getMessage());
   }
 
-  private void parseMessage(Message message) {
-    if (!cmdParser.parseCommand(message)) {
-      reactBot.react(message);
-    }
-  }
 
   @Override
   public void onMessageReactionAdd(MessageReactionAddEvent event) {
