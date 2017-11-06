@@ -2,6 +2,8 @@ package net.discordbot.core;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Verify;
+import net.discordbot.common.BasicCommand;
+import net.discordbot.common.DiscordBot;
 import net.dv8tion.jda.core.entities.Message;
 
 import java.lang.reflect.InvocationTargetException;
@@ -36,10 +38,10 @@ public final class CommandInvoker {
     this.name = name;
     int modifiers = method.getModifiers();
 
-    // Ensure method has @BotCommand annotation.
+    // Ensure method has @BasicCommand annotation.
     Verify.verifyNotNull(
-        method.getAnnotation(BotCommand.class),
-        "%d must be annotated with @BotCommand!",
+        method.getAnnotation(BasicCommand.class),
+        "%d must be annotated with @BasicCommand!",
         method);
 
     // Ensure method is public and non-static.
@@ -62,7 +64,7 @@ public final class CommandInvoker {
 
   /** Returns true if `method` represents a DiscordBot command. */
   public static boolean isCommand(Method method) {
-    return method.getAnnotation(BotCommand.class) != null;
+    return method.getAnnotation(BasicCommand.class) != null;
   }
 
   /**
@@ -117,7 +119,7 @@ public final class CommandInvoker {
         name,
         Joiner.on(", ").join(
             Arrays.stream(method.getParameterTypes()).skip(1).map(Class::getName).iterator()),
-        method.getAnnotation(BotCommand.class).value());
+        method.getAnnotation(BasicCommand.class).value());
   }
 
   static {

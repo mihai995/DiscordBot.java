@@ -2,6 +2,9 @@ package net.discordbot.core;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Verify;
+import net.discordbot.common.BasicCommand;
+import net.discordbot.common.DiscordBot;
+import net.discordbot.common.TextListener;
 import net.dv8tion.jda.core.entities.Message;
 
 import java.lang.reflect.Method;
@@ -10,7 +13,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class CommandParser extends DiscordBot {
+final class CommandManager extends DiscordBot implements TextListener{
 
   private static final Pattern IS_COMMAND =
       Pattern.compile(
@@ -19,7 +22,7 @@ public final class CommandParser extends DiscordBot {
   private final Map<String, CommandInvoker> commands = new HashMap<>();
 
   /** Adds all DiscordBot commands held by the bot instance. */
-  public void registerCommands(DiscordBot bot) {
+  void registerCommands(DiscordBot bot) {
     for (Method method : bot.getClass().getDeclaredMethods()) {
       if (CommandInvoker.isCommand(method)) {
         String name = method.getName().toLowerCase();
@@ -33,7 +36,8 @@ public final class CommandParser extends DiscordBot {
    * Parses `message` and runs the registered commands on it and returns whether a command was
    * parsed or not.
    */
-  public boolean parseCommand(Message message) {
+  @Override
+  public boolean parseMessage(Message message) {
     Matcher commandMatcher = IS_COMMAND.matcher(message.getContent());
     if (!commandMatcher.matches()) {
       // Message does not have the command format. Abort.
@@ -50,7 +54,7 @@ public final class CommandParser extends DiscordBot {
     return true;
   }
 
-  @BotCommand("writes this list")
+  @BasicCommand("writes this list")
   public void help(Message message) {
     ActionBuilder action = reply(message);
     for (CommandInvoker cmd : commands.values()) {

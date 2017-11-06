@@ -1,4 +1,4 @@
-package net.discordbot.core;
+package net.discordbot.common;
 
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -6,7 +6,6 @@ import net.dv8tion.jda.core.entities.IMentionable;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.hooks.ListenerAdapter;
 import net.dv8tion.jda.core.requests.RestAction;
 
 import javax.annotation.CheckReturnValue;
@@ -57,7 +56,7 @@ public abstract class DiscordBot {
   }
 
   @CheckReturnValue
-  protected ActionBuilder log(String format, Object... args) {
+  public ActionBuilder log(String format, Object... args) {
     return log().say(format, args);
   }
 

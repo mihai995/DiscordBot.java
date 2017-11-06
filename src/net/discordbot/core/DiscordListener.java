@@ -1,11 +1,15 @@
 package net.discordbot.core;
 
 import com.google.common.base.Joiner;
-import net.discordbot.bots.MusicBot;
-import net.discordbot.bots.ReactBot;
+import net.discordbot.common.DiscordBot;
+import net.discordbot.common.TextListener;
+import net.discordbot.common.VoiceListener;
 import net.dv8tion.jda.client.events.call.voice.CallVoiceJoinEvent;
 import net.dv8tion.jda.client.events.call.voice.CallVoiceLeaveEvent;
+import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.core.entities.MessageReaction;
+import net.dv8tion.jda.core.events.Event;
 import net.dv8tion.jda.core.events.ExceptionEvent;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
@@ -22,81 +26,101 @@ import java.util.stream.Stream;
 
 public final class DiscordListener extends ListenerAdapter {
 
-  private final CommandParser cmdParser = new CommandParser();
-
-  private final MusicBot musicBot = new MusicBot();
-
-  private final ReactBot reactBot = new ReactBot();
+  private final CommandManager cmdManager = new CommandManager();
 
   private final List<DiscordBot> bots = new ArrayList<>();
+
+  private final List<TextListener> textBots = new ArrayList<>();
+
+  private final List<VoiceListener> voiceBots = new ArrayList<>();
 
   private final Properties data;
 
   public DiscordListener(Properties data) {
-    addBot(musicBot);
-    addBot(reactBot);
-    addBot(cmdParser);
+    addBot(cmdManager);
     this.data = data;
   }
 
   public DiscordListener addBot(DiscordBot bot) {
-    cmdParser.registerCommands(bot);
+    cmdManager.registerCommands(bot);
     bots.add(bot);
+    if (bot instanceof TextListener) {
+      textBots.add((TextListener) bot);
+    }
+    if (bot instanceof VoiceListener) {
+      voiceBots.add((VoiceListener) bot);
+    }
     return this;
   }
 
-  /** Handles the parsing of new and old messages. */
-  private void parseMessage(Message message) {
-    if (!cmdParser.parseCommand(message)) {
-      reactBot.react(message);
+  /** Handles the processing of new and old messages. */
+  private void processMessage(Message message) {
+    // Needs to happen sequentially.
+    for (TextListener textBot : textBots) {
+      if (textBot.parseMessage(message)) {
+        return;
+      }
     }
+  }
+
+  /** Handles the processing of message reactions. */
+  private void processReaction(MessageReaction reaction, int factor) {
+    textBots.parallelStream().forEach(bot -> bot.parseReaction(reaction, factor));
+  }
+
+  /** Handles the processing of voice channel events. */
+  private void processVoiceEvent(Event event) {
+    voiceBots.parallelStream().forEach(bot -> bot.processVoiceEvent(event));
   }
 
   @Override
   public void onMessageReceived(MessageReceivedEvent event) {
-    parseMessage(event.getMessage());
+    processMessage(event.getMessage());
   }
 
   @Override
   public void onMessageUpdate(MessageUpdateEvent event) {
-    parseMessage(event.getMessage());
+    processMessage(event.getMessage());
   }
 
 
   @Override
   public void onMessageReactionAdd(MessageReactionAddEvent event) {
-    reactBot.registerReaction(event.getMessageIdLong(), event.getReaction(), 1);
+    processReaction(event.getReaction(), 1);
   }
 
   @Override
   public void onMessageReactionRemove(MessageReactionRemoveEvent event) {
-    reactBot.registerReaction(event.getMessageIdLong(), event.getReaction(), -1);
+    processReaction(event.getReaction(), -1);
   }
 
   @Override
   public void onReady(ReadyEvent event) {
-    for (DiscordBot bot : bots) {
-      bot.prepare(event.getJDA(), data);
-    }
-    cmdParser.log("I have respawned.").now();
+    JDA jda = event.getJDA();
+    bots.parallelStream().forEach(bot -> bot.prepare(jda, data));
+    getDiscordBot().log("I have respawned.").soon();
   }
 
   @Override
   public void onCallVoiceJoin(CallVoiceJoinEvent event) {
-    musicBot.refreshState();
+    processVoiceEvent(event);
   }
 
   @Override
   public void onCallVoiceLeave(CallVoiceLeaveEvent event) {
-    musicBot.refreshState();
+    processVoiceEvent(event);
   }
 
   @Override
   public void onException(ExceptionEvent event) {
     Stream<StackTraceElement> stackTrace = Arrays.stream(event.getCause().getStackTrace());
-    cmdParser.log("Encountered exception while parsing a message!")
+    getDiscordBot().log("Encountered exception while parsing a message!")
         .say(Joiner.on('\n').join(stackTrace.map(StackTraceElement::toString).toArray(String[]::new)))
         .now();
   }
 
+  /** Returns a DiscordBot that the listener can use to post messages on chat. */
+  private DiscordBot getDiscordBot() {
+    return bots.get(0);
+  }
 }
