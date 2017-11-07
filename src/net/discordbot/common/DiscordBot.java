@@ -103,12 +103,12 @@ public abstract class DiscordBot {
 
     @CheckReturnValue
     private RestAction<Message> execute() {
-      Message message = this.message.build();
+      Message message = this.message.isEmpty() ? null : this.message.build();
       return file != null ? channel.sendFile(file, message) : channel.sendMessage(message);
     }
 
-    public void now() {
-      execute().complete();
+    public Message now() {
+      return execute().complete();
     }
 
     public void soon() {
