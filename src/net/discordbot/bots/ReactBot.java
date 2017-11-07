@@ -79,7 +79,7 @@ public final class ReactBot extends DiscordBot implements TextListener {
       // Assume last `.` marks a file type so remove it from the name.
       name = name.substring(0, pos);
     }
-    return name.toLowerCase();
+    return name.toLowerCase().replace('_', ' ');
   }
 
   @BasicCommand("posts a requested meme")

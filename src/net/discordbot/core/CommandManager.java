@@ -10,6 +10,7 @@ import net.dv8tion.jda.core.entities.Message;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,8 +54,14 @@ final class CommandManager extends DiscordBot implements TextListener{
           .say("Run *help* for a list of available commands")
           .now();
     }
+    log("[%s]: %s", getNameOfAuthor(message), message.getContent()).soon();
     message.delete().queue();
     return true;
+  }
+
+  private static String getNameOfAuthor(Message message) {
+    return Optional.ofNullable(
+        message.getMember().getNickname()).orElse(message.getAuthor().getName());
   }
 
   @BasicCommand("writes this list")
