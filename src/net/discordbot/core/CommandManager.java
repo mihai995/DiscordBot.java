@@ -15,9 +15,11 @@ import java.util.regex.Pattern;
 
 final class CommandManager extends DiscordBot implements TextListener{
 
+  /** Lists all sequences that indicate a DiscordBot command. */
+  private static final String[] COMMAND_MARKERS = {"sudo +", "!","`","\\\\"};
+
   private static final Pattern IS_COMMAND =
-      Pattern.compile(
-          String.format("(%s)([a-zA-Z]+)(.*)", Joiner.on('|').join(Utils.COMMAND_MARKERS)));
+      Pattern.compile(String.format("(%s)([a-zA-Z]+)(.*)", Joiner.on('|').join(COMMAND_MARKERS)));
 
   private final Map<String, CommandInvoker> commands = new HashMap<>();
 
@@ -51,6 +53,7 @@ final class CommandManager extends DiscordBot implements TextListener{
           .say("Run *help* for a list of available commands")
           .now();
     }
+    message.delete().queue();
     return true;
   }
 

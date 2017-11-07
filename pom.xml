@@ -39,6 +39,11 @@
             <artifactId>guava</artifactId>
             <version>23.3-jre</version>
         </dependency>
+        <dependency>
+            <groupId>com.google.auto.value</groupId>
+            <artifactId>auto-value</artifactId>
+            <version>1.5.1</version>
+        </dependency>
     </dependencies>
 
 </project>

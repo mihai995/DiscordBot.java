@@ -21,7 +21,6 @@ import net.dv8tion.jda.core.hooks.ListenerAdapter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Properties;
 import java.util.stream.Stream;
 
 public final class DiscordListener extends ListenerAdapter {
@@ -34,11 +33,11 @@ public final class DiscordListener extends ListenerAdapter {
 
   private final List<VoiceListener> voiceBots = new ArrayList<>();
 
-  private final Properties data;
+  private final Config cfg;
 
-  public DiscordListener(Properties data) {
+  public DiscordListener(Config cfg) {
     addBot(cmdManager);
-    this.data = data;
+    this.cfg = cfg;
   }
 
   public DiscordListener addBot(DiscordBot bot) {
@@ -97,7 +96,7 @@ public final class DiscordListener extends ListenerAdapter {
   @Override
   public void onReady(ReadyEvent event) {
     JDA jda = event.getJDA();
-    bots.parallelStream().forEach(bot -> bot.prepare(jda, data));
+    bots.parallelStream().forEach(bot -> bot.prepare(jda, cfg));
     getDiscordBot().log("I have respawned.").soon();
   }
 

@@ -1,5 +1,6 @@
 package net.discordbot.common;
 
+import net.discordbot.core.Config;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.IMentionable;
@@ -10,7 +11,6 @@ import net.dv8tion.jda.core.requests.RestAction;
 
 import javax.annotation.CheckReturnValue;
 import java.io.File;
-import java.util.Properties;
 
 /**
  * Implements a thin wrapper around a JDA bot for convenience purposes.
@@ -65,9 +65,9 @@ public abstract class DiscordBot {
     return reply(message).say(format, args);
   }
 
-  public void prepare(JDA jda, Properties data) {
-    mainChannel = jda.getTextChannelById(data.getProperty("main_channel"));
-    logChannel = jda.getTextChannelById(data.getProperty("log_channel"));
+  public void prepare(JDA jda, Config cfg) {
+    mainChannel = jda.getTextChannelById(cfg.getMainChannelID());
+    logChannel = jda.getTextChannelById(cfg.getLogChannelID());
   }
 
   public static final class ActionBuilder {
