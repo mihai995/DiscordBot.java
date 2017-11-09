@@ -25,6 +25,7 @@ public abstract class Config {
     Ini.Section credentials = getValidatedSection(cfg, "CREDENTIALS", "bot_name", "token");
     Ini.Section channels = getValidatedSection(cfg, "CHANNELS", "main", "log");
     Ini.Section memeifiers = getValidatedSection(cfg, "MEMEIFIERS");
+    Ini.Section reactions = getValidatedSection(cfg, "REACTIONS");
     Ini.Section others = getValidatedSection(cfg, "OTHERS", "meme_folder");
 
     ImmutableMap.Builder<Long, String> memeifierList = ImmutableMap.builder();
@@ -36,13 +37,17 @@ public abstract class Config {
             file.getParentFile().listFiles((dir, name) -> name.equals(desiredName)));
     File memeFolder = Iterables.getOnlyElement(Arrays.asList(memeFolderOptions));
 
+    ImmutableMap.Builder<String, Integer> reactionScores = ImmutableMap.builder();
+    reactions.forEach((name, score) -> reactionScores.put(name, Integer.parseInt(score)));
+
     return new net.discordbot.core.AutoValue_Config(
         credentials.get("bot_name"),
         credentials.get("token"),
         Long.parseLong(channels.get("main")),
         Long.parseLong(channels.get("log")),
         memeFolder,
-        memeifierList.build());
+        memeifierList.build(),
+        reactionScores.build());
   }
 
   private static Ini.Section getValidatedSection(Ini cfg, String sectionName, String... args) {
@@ -66,4 +71,6 @@ public abstract class Config {
   public abstract File getMemeFolder();
 
   public abstract ImmutableMap<Long, String> getMemeifiers();
+
+  public abstract ImmutableMap<String, Integer> getReactionScores();
 }
