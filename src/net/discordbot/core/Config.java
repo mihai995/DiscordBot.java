@@ -47,7 +47,7 @@ public abstract class Config {
 
   private static Ini.Section getValidatedSection(Ini cfg, String sectionName, String... args) {
     Ini.Section section = cfg.get(sectionName);
-    Verify.verifyNotNull(section, "Section \"%s\" is missing from the config file!");
+    Verify.verifyNotNull(section, "Section \"%s\" is missing from the config file!", sectionName);
     for (String arg : args) {
       Verify.verifyNotNull(
           section.get(arg), "Section \"%s\" is missing argument \"%s\"", sectionName, arg);
