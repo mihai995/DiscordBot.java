@@ -7,7 +7,8 @@ import com.google.common.collect.*;
 import net.discordbot.common.BasicCommand;
 import net.discordbot.common.DiscordBot;
 import net.discordbot.common.TextListener;
-import net.discordbot.core.Config;
+import net.discordbot.util.Config;
+import net.discordbot.util.PersistenceManager;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Emote;
 import net.dv8tion.jda.core.entities.Message;
@@ -18,11 +19,18 @@ import org.ahocorasick.trie.Trie;
 import java.io.File;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class ReactBot extends DiscordBot implements TextListener {
 
   private static final int PAST_REACTION_CACHE_SIZE = 100;
+
+  /** The default chance of posting a meme with reaction score of 0. */
+  private static final double DEFAULT_CHANCE = 0.9;
+
+  /** The smallest chance a meme can have to be posted. */
+  private static final double MIN_CHANCE = 0.01;
 
   private final Cache<Long, Reaction> reactionCache =
       CacheBuilder.newBuilder().maximumSize(PAST_REACTION_CACHE_SIZE).build();
@@ -32,6 +40,8 @@ public final class ReactBot extends DiscordBot implements TextListener {
   private ImmutableMap<Long, String> memeifiers;
 
   private ImmutableMultimap<String, Reaction> reactions;
+
+  private PersistenceManager<ConcurrentHashMap<File, AtomicInteger>> reactionWeights;
 
   private Trie textMatcher;
 
@@ -44,6 +54,7 @@ public final class ReactBot extends DiscordBot implements TextListener {
     memeFolder = cfg.getMemeFolder();
     loadMemes();
     emoteScores = cfg.getReactionScores();
+    reactionWeights = new PersistenceManager<>(cfg.getPersistenceFile(), new ConcurrentHashMap<>());
   }
 
   @Override
@@ -118,8 +129,6 @@ public final class ReactBot extends DiscordBot implements TextListener {
 
   private final class Reaction {
 
-    private final AtomicInteger rating = new AtomicInteger(0);
-
     private final File reactFile;
 
     Reaction(File reactFile) {
@@ -127,8 +136,7 @@ public final class ReactBot extends DiscordBot implements TextListener {
     }
 
     private void post(MessageChannel channel, boolean bypassFilter) {
-      double threshold = 1 / (1 + Math.exp(-rating.get() / memeifiers.size()));
-      if (bypassFilter || Math.random() <= threshold) {
+      if (bypassFilter || Math.random() <= getWeight()) {
         long reactID = message(channel).addFile(reactFile).now().getIdLong();
         reactionCache.put(reactID, this);
       }
@@ -137,12 +145,21 @@ public final class ReactBot extends DiscordBot implements TextListener {
     private void recordReaction(Emote emote, int factor) {
       if (emote != null) {
         factor *= emoteScores.getOrDefault(emote.getName(), 0);
-        rating.addAndGet(factor);
+        if (factor != 0) {
+          AtomicInteger weight =  new AtomicInteger(0);
+          weight = Optional.ofNullable(reactionWeights.get().putIfAbsent(reactFile, weight)).orElse(weight);
+          weight.getAndAdd(factor);
+        }
       }
     }
 
-    private void updateRating(int factor) {
-      rating.addAndGet(factor);
+    private double getWeight() {
+      AtomicInteger weight = reactionWeights.get().getOrDefault(reactFile, new AtomicInteger(0));
+      return weightFunction(weight.get());
     }
+  }
+
+  private static double weightFunction(int w) {
+    return Math.max(MIN_CHANCE, DEFAULT_CHANCE * Math.exp(0.1 * w));
   }
 }

@@ -1,14 +1,12 @@
-package net.discordbot.core;
+package net.discordbot.util;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import org.ini4j.Ini;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 
 @AutoValue
 public abstract class Config {
@@ -26,28 +24,27 @@ public abstract class Config {
     Ini.Section channels = getValidatedSection(cfg, "CHANNELS", "main", "log");
     Ini.Section memeifiers = getValidatedSection(cfg, "MEMEIFIERS");
     Ini.Section reactions = getValidatedSection(cfg, "REACTIONS");
-    Ini.Section others = getValidatedSection(cfg, "OTHERS", "meme_folder");
+    Ini.Section others = getValidatedSection(cfg, "OTHERS", "meme_folder", "persistence_file");
 
     ImmutableMap.Builder<Long, String> memeifierList = ImmutableMap.builder();
     memeifiers.forEach((name, id) -> memeifierList.put(Long.parseLong(id), name));
 
-    String desiredName = others.get("meme_folder");
-    File[] memeFolderOptions =
-        Verify.verifyNotNull(
-            file.getParentFile().listFiles((dir, name) -> name.equals(desiredName)));
-    File memeFolder = Iterables.getOnlyElement(Arrays.asList(memeFolderOptions));
-
     ImmutableMap.Builder<String, Integer> reactionScores = ImmutableMap.builder();
     reactions.forEach((name, score) -> reactionScores.put(name, Integer.parseInt(score)));
 
-    return new net.discordbot.core.AutoValue_Config(
+    return new net.discordbot.util.AutoValue_Config(
         credentials.get("bot_name"),
         credentials.get("token"),
         Long.parseLong(channels.get("main")),
         Long.parseLong(channels.get("log")),
-        memeFolder,
+        getFile(file.getParentFile(), others.get("meme_folder")),
+        getFile(file.getParentFile(), others.get("persistence_file")),
         memeifierList.build(),
         reactionScores.build());
+  }
+
+  private static File getFile(File root, String fileName) {
+    return new File(String.format("%s%s%s", root.getAbsolutePath(), File.separator, fileName));
   }
 
   private static Ini.Section getValidatedSection(Ini cfg, String sectionName, String... args) {
@@ -69,6 +66,8 @@ public abstract class Config {
   public abstract long getLogChannelID();
 
   public abstract File getMemeFolder();
+
+  public abstract File getPersistenceFile();
 
   public abstract ImmutableMap<Long, String> getMemeifiers();
 

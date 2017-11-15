@@ -1,6 +1,6 @@
 package net.discordbot.common;
 
-import net.discordbot.core.Config;
+import net.discordbot.util.Config;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.IMentionable;

@@ -4,6 +4,7 @@ import com.google.common.base.Joiner;
 import net.discordbot.common.DiscordBot;
 import net.discordbot.common.TextListener;
 import net.discordbot.common.VoiceListener;
+import net.discordbot.util.Config;
 import net.dv8tion.jda.client.events.call.voice.CallVoiceJoinEvent;
 import net.dv8tion.jda.client.events.call.voice.CallVoiceLeaveEvent;
 import net.dv8tion.jda.core.JDA;

@@ -2,19 +2,15 @@ package net.discordbot.bots;
 
 import net.discordbot.common.DiscordBot;
 import net.discordbot.common.TextListener;
-import net.discordbot.core.Config;
+import net.discordbot.util.Config;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.User;
-import org.jscience.physics.amount.Amount;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.measure.Measure;
 import javax.measure.converter.UnitConverter;
-import javax.measure.unit.AlternateUnit;
-import javax.measure.unit.Unit;
 
 import static javax.measure.unit.NonSI.*;
 import static javax.measure.unit.SI.*;
