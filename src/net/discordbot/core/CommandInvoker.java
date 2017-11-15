@@ -79,7 +79,6 @@ public final class CommandInvoker {
     }
     try {
       method.invoke(bot, params.toArray());
-      // message.delete().reason("Command executed").complete(); TODO: reintroduce this.
     } catch (IllegalAccessException | InvocationTargetException e) {
       // Invocation failed. Mark failure and proceed.
       e.printStackTrace(System.err);
@@ -118,7 +117,7 @@ public final class CommandInvoker {
         "%s(%s): %s",
         name,
         Joiner.on(", ").join(
-            Arrays.stream(method.getParameterTypes()).skip(1).map(Class::getName).iterator()),
+            Arrays.stream(method.getParameterTypes()).skip(1).map(Class::getSimpleName).iterator()),
         method.getAnnotation(BasicCommand.class).value());
   }
 

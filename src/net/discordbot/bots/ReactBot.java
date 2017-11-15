@@ -63,7 +63,6 @@ public final class ReactBot extends DiscordBot implements TextListener {
     if (react != null) {
       react.recordReaction(reaction.getEmote().getEmote(), factor);
     }
-    // TODO: record how people receive the emitted reaction to tune future reactions.
   }
 
   @Override
@@ -84,7 +83,7 @@ public final class ReactBot extends DiscordBot implements TextListener {
         reactionBuilder.put(getMemeKeyword(meme.getName()), new Reaction(meme));
       }
     }
-    // TODO: add additional reactions
+    // TODO: add additional reaction aliases that persist over runs
     reactions = reactionBuilder.build();
 
     Trie.TrieBuilder matcherBuilder = Trie.builder().ignoreCase();
@@ -101,6 +100,11 @@ public final class ReactBot extends DiscordBot implements TextListener {
       name = name.substring(0, pos);
     }
     return name.toLowerCase().replace('_', ' ');
+  }
+
+  @BasicCommand("adds a new meme to the collection")
+  public void memeify(Message msg, String argument) {
+    // TODO: implement
   }
 
   @BasicCommand("posts a requested meme")
