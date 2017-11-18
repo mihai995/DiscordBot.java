@@ -117,6 +117,7 @@ public class ConversionBot extends DiscordBot implements TextListener {
     alias(OUNCE, "oz", "ounce", "ounces", "uncie", "uncii");
     alias(OUNCE_LIQUID_US, "fl.oz", "floz");
     alias(POUND, "lb", "lbs", "pound", "pounds");
+    alias(POUND.times(14), "stone", "stones");
     alias(FAHRENHEIT, "F", "Fa", "Fahrenheit");
     alias(GALLON_LIQUID_US, "ga", "gallon", "gallons");
     alias(GALLON_LIQUID_US.divide(8), "pint", "pints");
