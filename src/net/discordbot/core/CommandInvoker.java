@@ -122,7 +122,7 @@ public final class CommandInvoker {
   }
 
   static {
-    CONVERTER.put(String.class, x -> x);
+    CONVERTER.put(String.class, String::trim);
     CONVERTER.put(Integer.class, Integer::decode);
     CONVERTER.put(Double.class, Double::parseDouble);
   }
