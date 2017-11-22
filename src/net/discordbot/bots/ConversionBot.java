@@ -1,6 +1,7 @@
 package net.discordbot.bots;
 
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import net.discordbot.common.BasicCommand;
 import net.discordbot.common.DiscordBot;
 import net.discordbot.common.TextListener;
@@ -33,6 +34,7 @@ public class ConversionBot extends DiscordBot implements TextListener {
 
   private User satanName;
 
+  /** Units of measure that are preferred in a non-SI format. */
   private static final ImmutableMultimap<Unit, Unit> UNIT_PREFERENCES =
       ImmutableMultimap.<Unit, Unit>builder()
           .putAll(KILOGRAM, KILOGRAM, GRAM, METRIC_TON, MICRO(GRAM), NANO(GRAM))
@@ -40,6 +42,25 @@ public class ConversionBot extends DiscordBot implements TextListener {
           .putAll(CUBIC_METRE, LITER, MILLI(LITER))
           .put(KELVIN, CELSIUS)
           .build();
+
+  /** Additional aliases to consider beyond the default ones from javax.measure. */
+  private static final ImmutableMultimap<Unit, String> CUSTOM_ALIASES =
+      ImmutableMultimap.<Unit, String>builder()
+          .putAll(INCH, "in", "inch", "inches")
+          .putAll(FOOT, "ft", "foot", "feet")
+          .putAll(YARD, "yd", "yard", "yards")
+          .putAll(MILE, "mi", "mile", "miles", "mila")
+          .putAll(OUNCE, "oz", "ounce", "ounces", "uncie", "uncii")
+          .putAll(OUNCE_LIQUID_US, "fl.oz", "floz")
+          .putAll(POUND, "lb", "lbs", "pound", "pounds")
+          .putAll(POUND.times(14), "stone", "stones")
+          .putAll(FAHRENHEIT, "F", "Fa", "Fahrenheit")
+          .putAll(GALLON_LIQUID_US, "ga", "gallon", "gallons")
+          .putAll(GALLON_LIQUID_US.divide(8), "pint", "pints")
+          .build();
+
+  /** Classes of units that are to be ignored by the converter. */
+  private static final ImmutableSet<Unit> UNITS_TO_IGNORE = ImmutableSet.of(SECOND);
 
   @Override
   public void prepare(JDA jda, Config cfg) {
@@ -72,6 +93,9 @@ public class ConversionBot extends DiscordBot implements TextListener {
     Unit oldUnit = amount.getUnit();
 
     Unit unit = amount.getUnit().getStandardUnit();
+    if (UNITS_TO_IGNORE.contains(unit)) {
+      return false;
+    }
     Collection<Unit> possibleUnits = UNIT_PREFERENCES.get(unit);
 
     if (unit.equals(oldUnit) || possibleUnits.contains(oldUnit)) {
@@ -110,23 +134,7 @@ public class ConversionBot extends DiscordBot implements TextListener {
   }
 
   static {
-    alias(INCH, "in", "inch", "inches");
-    alias(FOOT, "ft", "foot", "feet");
-    alias(YARD, "yd", "yard", "yards");
-    alias(MILE, "mi", "mile", "miles", "mila");
-    alias(OUNCE, "oz", "ounce", "ounces", "uncie", "uncii");
-    alias(OUNCE_LIQUID_US, "fl.oz", "floz");
-    alias(POUND, "lb", "lbs", "pound", "pounds");
-    alias(POUND.times(14), "stone", "stones");
-    alias(FAHRENHEIT, "F", "Fa", "Fahrenheit");
-    alias(GALLON_LIQUID_US, "ga", "gallon", "gallons");
-    alias(GALLON_LIQUID_US.divide(8), "pint", "pints");
-  }
-
-  private static void alias(Unit unit, String... aliases) {
     UnitFormat units = UnitFormat.getInstance();
-    for (String alias : aliases) {
-      units.alias(unit, alias);
-    }
+    CUSTOM_ALIASES.forEach(units::alias);
   }
 }
