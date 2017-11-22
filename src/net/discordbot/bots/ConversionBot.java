@@ -28,7 +28,7 @@ public class ConversionBot extends DiscordBot implements TextListener {
   private static final String UNIT = "[a-zA-Z]*[.a-zA-Z]?[a-zA-Z]+";
 
   private static final Pattern IS_UNIT =
-      Pattern.compile(String.format("(%s)\\s*(%s)", NUMBER, UNIT));
+      Pattern.compile(String.format("\\s(%s)\\s*(%s)\\s", NUMBER, UNIT));
 
   private static final String CONVERSION_FORMAT = "FYI %s is %.2f%s in non-retarded units";
 
@@ -73,10 +73,10 @@ public class ConversionBot extends DiscordBot implements TextListener {
     if (message.getAuthor() == satanName) {
       return false;
     }
-    Matcher matcher = IS_UNIT.matcher(message.getContent());
+    Matcher matcher = IS_UNIT.matcher(" " + message.getContent() + " ");
     boolean processed = false;
     while (matcher.find()) {
-      processed |= convert(message, matcher.group(0));
+      processed |= convert(message, matcher.group(1) + matcher.group(2));
     }
     return processed;
   }
@@ -87,7 +87,7 @@ public class ConversionBot extends DiscordBot implements TextListener {
     Amount amount;
     try {
       amount = Amount.valueOf(quantity);
-    } catch (IllegalArgumentException e) {
+    } catch (Exception e) {
       return false;
     }
     Unit oldUnit = amount.getUnit();
