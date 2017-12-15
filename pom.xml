@@ -6,7 +6,9 @@
 
     <groupId>org.discord.java</groupId>
     <artifactId>discordbot</artifactId>
-    <version>1.0-BETA</version>
+    <version>0.1-BETA</version>
+    <packaging>jar</packaging>
+    
     <build>
         <plugins>
             <plugin>
@@ -16,6 +18,14 @@
                 <configuration>
                     <source>9</source>
                     <target>9</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.4.0</version>
+                <configuration>
+                    <mainClass>net.discordbot.BotRunner</mainClass>
                 </configuration>
             </plugin>
         </plugins>
