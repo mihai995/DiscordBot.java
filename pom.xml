@@ -6,7 +6,7 @@
 
     <groupId>org.discord.java</groupId>
     <artifactId>discordbot</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0-BETA</version>
     <build>
         <plugins>
             <plugin>
