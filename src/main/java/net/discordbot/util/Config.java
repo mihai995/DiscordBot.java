@@ -3,6 +3,7 @@ package net.discordbot.util;
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.ini4j.Ini;
 
 import java.io.File;
@@ -32,6 +33,13 @@ public abstract class Config {
     ImmutableMap.Builder<String, Integer> reactionScores = ImmutableMap.builder();
     reactions.forEach((name, score) -> reactionScores.put(name, Integer.parseInt(score)));
 
+    File[] images =
+        Verify.verifyNotNull(new File("img").listFiles(), "Missing helper images under \"img/\".");
+    ImmutableMap.Builder<String, File> imageMap = ImmutableMap.builder();
+    for (File image : images) {
+      imageMap.put(image.getName(), image);
+    }
+
     return new net.discordbot.util.AutoValue_Config(
         credentials.get("bot_name"),
         credentials.get("token"),
@@ -40,7 +48,8 @@ public abstract class Config {
         getFile(file.getParentFile(), others.get("meme_folder")),
         getFile(file.getParentFile(), others.get("persistence_file")),
         memeifierList.build(),
-        reactionScores.build());
+        reactionScores.build(),
+        imageMap.build());
   }
 
   private static File getFile(File root, String fileName) {
@@ -72,4 +81,6 @@ public abstract class Config {
   public abstract ImmutableMap<Long, String> getMemeifiers();
 
   public abstract ImmutableMap<String, Integer> getReactionScores();
+
+  public abstract ImmutableMap<String, File> getImages();
 }
