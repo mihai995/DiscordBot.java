@@ -44,7 +44,7 @@ public final class ReactBot extends DiscordBot implements TextListener {
    */
   private static final double MIN_CHANCE = 0.01;
 
-  private static final Pattern MEME_FILE_PATTERN = Pattern.compile("[a-z_]+[0-9]*\\.(jpg|png|gif)");
+  private static final Pattern MEME_FILE_PATTERN = Pattern.compile("([a-z_]+)[0-9]*\\.(jpg|png|gif)");
 
   private static final Pattern COMMA_SPLIT = Pattern.compile(", *");
 
@@ -70,12 +70,9 @@ public final class ReactBot extends DiscordBot implements TextListener {
   private File memeFolder;
 
   private static String getMemeKeyword(String name) {
-    int pos = name.lastIndexOf('.');
-    if (pos != -1) {
-      // Assume last `.` marks a file type so remove it from the name.
-      name = name.substring(0, pos);
-    }
-    return name.toLowerCase().replace('_', ' ');
+    Matcher matcher = MEME_FILE_PATTERN.matcher(name);
+    Verify.verify(matcher.matches(), "Meme file name %s is malformed", name);
+    return matcher.group(1).replace('_', ' ');
   }
 
   private static <T> Optional<T> randomElement(Collection<T> coll) {
@@ -142,7 +139,7 @@ public final class ReactBot extends DiscordBot implements TextListener {
               Reaction reaction =
                   Verify.verifyNotNull(
                       reactions.get(memeFile), "Meme file %s not found", memeFile);
-              for (String reactionPattern : COMMA_SPLIT.split(matcher.group(3))) {
+              for (String reactionPattern : COMMA_SPLIT.split(matcher.group(4))) {
                 reactionBuilder.put(reactionPattern, reaction);
               }
             });
