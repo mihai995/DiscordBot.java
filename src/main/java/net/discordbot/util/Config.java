@@ -53,7 +53,8 @@ public abstract class Config {
   }
 
   private static File getFile(File root, String fileName) {
-    return new File(String.format("%s%s%s", root.getAbsolutePath(), File.separator, fileName));
+    File file = new File(fileName);
+    return file.exists() ? file: new File(root, fileName);
   }
 
   private static Ini.Section getValidatedSection(Ini cfg, String sectionName, String... args) {
