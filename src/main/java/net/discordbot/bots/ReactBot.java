@@ -44,7 +44,8 @@ public final class ReactBot extends DiscordBot implements TextListener {
    */
   private static final double MIN_CHANCE = 0.01;
 
-  private static final Pattern MEME_FILE_PATTERN = Pattern.compile("([a-z_]+)[0-9]*\\.(jpg|png|gif)");
+  private static final Pattern MEME_FILE_PATTERN =
+      Pattern.compile("([a-z_']+)[0-9]*\\.(jpg|png|gif)");
 
   private static final Pattern COMMA_SPLIT = Pattern.compile(", *");
 
