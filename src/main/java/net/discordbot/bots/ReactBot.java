@@ -3,9 +3,7 @@ package net.discordbot.bots;
 import com.google.common.base.Verify;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.*;
 import net.discordbot.common.BasicCommand;
 import net.discordbot.common.DiscordBot;
 import net.discordbot.common.TextListener;
@@ -21,10 +19,8 @@ import org.ahocorasick.trie.Trie;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Optional;
+import java.nio.file.Path;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
@@ -34,14 +30,10 @@ public final class ReactBot extends DiscordBot implements TextListener {
 
   private static final int PAST_REACTION_CACHE_SIZE = 100;
 
-  /**
-   * The default chance of posting a meme with reaction score of 0.
-   */
+  /** The default chance of posting a meme with reaction score of 0. */
   private static final double DEFAULT_CHANCE = 0.9;
 
-  /**
-   * The smallest chance a meme can have to be posted.
-   */
+  /** The smallest chance a meme can have to be posted. */
   private static final double MIN_CHANCE = 0.01;
 
   private static final Pattern MEME_FILE_PATTERN =
@@ -49,20 +41,22 @@ public final class ReactBot extends DiscordBot implements TextListener {
 
   private static final Pattern COMMA_SPLIT = Pattern.compile(", *");
 
-  /**
-   * Format for react file lines.
-   */
+  /** Format for react file lines. */
   private static final Pattern REACT_LINE_PATTERN =
       Pattern.compile(String.format("(%s): ([a-z ,]*)", MEME_FILE_PATTERN.pattern()));
 
+  /** Cache containing all recent reactions posted by the RaectBot. */
   private final Cache<Long, Reaction> reactionCache =
       CacheBuilder.newBuilder().maximumSize(PAST_REACTION_CACHE_SIZE).build();
 
-  private ImmutableMap<String, Integer> emoteScores;
+  /** Reactions used for feedback to reactions. */
+  private ImmutableMap<String, Integer> emoteReactionScores;
 
   private ImmutableMap<Long, String> memeifiers;
 
-  private ImmutableMultimap<String, Reaction> reactions;
+  private final Multimap<String, Reaction> reactions = HashMultimap.create();
+
+  private final Map<String, Reaction> reactionMemes = new HashMap<>();
 
   private PersistenceManager<ConcurrentHashMap<File, AtomicInteger>> reactionWeights;
 
@@ -89,8 +83,12 @@ public final class ReactBot extends DiscordBot implements TextListener {
     super.prepare(jda, cfg);
     memeifiers = cfg.getMemeifiers();
     memeFolder = cfg.getMemeFolder();
-    loadMemes();
-    emoteScores = cfg.getReactionScores();
+    try {
+      loadMemes();
+    } catch (IOException e) {
+      throw new IllegalStateException("Encountered unexpected error while loading memes", e);
+    }
+    emoteReactionScores = cfg.getReactionScores();
     reactionWeights = new PersistenceManager<>(cfg.getPersistenceFile(), new ConcurrentHashMap<>());
   }
 
@@ -107,59 +105,68 @@ public final class ReactBot extends DiscordBot implements TextListener {
     return postMeme(message.getChannel(), message.getContent(), false);
   }
 
-  private void loadMemes() {
-    ImmutableCollection<String> owners = memeifiers.values();
-    File[] memeFolders = memeFolder.listFiles((parent, dir) -> owners.contains(dir));
-    Verify.verify(
-        memeFolders != null && memeFolders.length == memeifiers.size(),
-        "There are some meme subfolders missing from the meme folder!");
-
-    ImmutableMultimap.Builder<String, Reaction> reactionBuilder = ImmutableMultimap.builder();
-    HashMap<String, Reaction> reactions = new HashMap<>();
+  private void loadMemes() throws IOException {
     HashSet<File> reactFiles = new HashSet<>();
-    for (File memeFolder : memeFolders) {
-      for (File meme : memeFolder.listFiles()) {
-        if (meme.getName().equals("react.txt")) {
-          reactFiles.add(meme);
-        } else {
-          Reaction reaction = new Reaction(meme);
-          reactions.put(meme.getName(), reaction);
-          reactionBuilder.put(getMemeKeyword(meme.getName()), reaction);
+    Files.walk(memeFolder.toPath(), 2).map(Path::toFile).filter(File::isFile).forEach(
+        meme -> {
+          if (meme.getName().equals("react.txt")) {
+            reactFiles.add(meme);
+          } else {
+            addMemeFile(meme);
+          }
         }
-      }
+    );
+    for (File reactFile : reactFiles) {
+      Files.lines(reactFile.toPath()).forEach(this::addMemeReaction);
     }
-    try {
-      for (File reactFile : reactFiles) {
-        Files.lines(reactFile.toPath()).forEach(
-            line -> {
-              Matcher matcher = REACT_LINE_PATTERN.matcher(line);
-              if (!matcher.matches()) {
-                return;
-              }
-              String memeFile = matcher.group(1);
-              Reaction reaction =
-                  Verify.verifyNotNull(
-                      reactions.get(memeFile), "Meme file %s not found", memeFile);
-              for (String reactionPattern : COMMA_SPLIT.split(matcher.group(4))) {
-                reactionBuilder.put(reactionPattern, reaction);
-              }
-            });
-      }
-    } catch (IOException e) {
-      throw new IllegalStateException(e);
-    }
-    this.reactions = reactionBuilder.build();
-
     Trie.TrieBuilder matcherBuilder = Trie.builder().ignoreCase();
-    for (String keyword : reactions.keySet()) {
-      matcherBuilder.addKeyword(keyword);
-    }
+    reactions.keySet().forEach(matcherBuilder::addKeyword);
     textMatcher = matcherBuilder.build();
   }
 
+  private void addMemeFile(File meme) {
+    Reaction reaction = new Reaction(meme);
+    reactionMemes.put(meme.getName(), reaction);
+    reactions.put(getMemeKeyword(meme.getName()), reaction);
+  }
+
+  private boolean addMemeReaction(String line) {
+    Matcher matcher = REACT_LINE_PATTERN.matcher(line);
+    if (!matcher.matches()) {
+      return false;
+    }
+    String memeFile = matcher.group(1);
+    Reaction reaction =
+        Verify.verifyNotNull(
+            reactionMemes.get(memeFile), "Meme file %s not found", memeFile);
+    for (String reactionPattern : COMMA_SPLIT.split(matcher.group(4))) {
+      reactions.put(reactionPattern, reaction);
+    }
+    return true;
+  }
+
   @BasicCommand("adds a new meme to the collection")
-  public void memeify(Message msg, String argument) {
-    // TODO: implement
+  public void memeify(Message msg, String memeName, String aliases) {
+    String author = memeifiers.get(msg.getAuthor().getIdLong());
+    if (author == null) {
+      reply(msg, "you are not a meme master!").now();
+      return;
+    }
+    File meme = validateMemeFile(new File(memeFolder, author), memeName);
+    if (meme == null || !meme.isFile()) {
+      reply(msg, "your memeify request is malformed").now();
+      return;
+    }
+    addMemeReaction(String.format("%s: %s", meme.getName(), aliases));
+  }
+
+  private File validateMemeFile(File memeFolder, String memeName) {
+    if (!memeFolder.isDirectory() || !memeName.endsWith(":")) {
+      return null;
+    }
+    memeName = memeName.substring(0, memeName.length() - 1);
+    // TODO: implement this
+    return null;
   }
 
   @BasicCommand("posts a requested meme")
@@ -199,7 +206,7 @@ public final class ReactBot extends DiscordBot implements TextListener {
 
     private void recordReaction(Emote emote, int factor) {
       if (emote != null) {
-        factor *= emoteScores.getOrDefault(emote.getName(), 0);
+        factor *= emoteReactionScores.getOrDefault(emote.getName(), 0);
         if (factor != 0) {
           AtomicInteger weight = new AtomicInteger(0);
           weight = Optional.ofNullable(reactionWeights.get().putIfAbsent(reactFile, weight)).orElse(weight);
