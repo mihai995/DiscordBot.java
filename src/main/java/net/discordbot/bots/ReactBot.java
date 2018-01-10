@@ -176,7 +176,7 @@ public final class ReactBot extends DiscordBot implements TextListener {
 
   private boolean postMeme(MessageChannel channel, String text, boolean bypassFilter) {
     String lowercaseText = text.toLowerCase();
-    Optional<Reaction> meme = getExactMeme(text).or(() -> getPartialMeme(lowercaseText));
+    Optional<Reaction> meme = getExactMeme(lowercaseText).or(() -> getPartialMeme(lowercaseText));
     meme.ifPresent(x -> x.post(channel, bypassFilter));
     return meme.isPresent();
   }
